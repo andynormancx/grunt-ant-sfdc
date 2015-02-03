@@ -306,7 +306,8 @@ module.exports = function(grunt) {
       retrieveTarget: false,
       unzip: true,
       useEnv: false,
-      existingPackage: false
+      existingPackage: false,
+      alternativeMetadataFile: false
     });
 
     grunt.log.writeln('Retrieve Target -> ' + target);
@@ -318,6 +319,9 @@ module.exports = function(grunt) {
     options.unpackaged = path.join(options.root,'/package.xml');
     if(!options.retrieveTarget) {options.retrieveTarget = options.root;}
 
+    if (options.alternativeMetadataFile) {      
+      replaceMetadata(options.alternativeMetadataFile);
+    }
     var buildFile = grunt.template.process(template, { data: options });
     grunt.file.write(path.join(localTmp,'/ant/build.xml'), buildFile);
 
