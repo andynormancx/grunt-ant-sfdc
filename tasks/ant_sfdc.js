@@ -171,6 +171,8 @@ module.exports = function(grunt) {
         }
       }
     }
+
+    return jsonData;
   }
 
   function replaceMetadata(alternativeMetadataFile) {
