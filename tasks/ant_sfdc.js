@@ -176,9 +176,10 @@ module.exports = function(grunt) {
   }
 
   function replaceMetadata(alternativeMetadataFile) {
+    grunt.log.writeln('Using alternative metadata file -> ' + alternativeMetadataFile);
     var json = grunt.file.read(alternativeMetadataFile);
     var jsonData = JSON.parse(json);
-    metaData = jsonData;
+    metadata = jsonData;
   }
 
   /*************************************
