@@ -262,7 +262,7 @@ module.exports = function(grunt) {
 
     options.root = path.normalize(options.root);
 
-    options.unpackaged = path.join(localTmp,'/package.xml');
+    options.unpackaged = path.join(options.root,'/package.xml');
     if(!options.retrieveTarget) {options.retrieveTarget = options.root;}
 
     var buildFile = grunt.template.process(template, { data: options });
