@@ -379,7 +379,7 @@ module.exports = function(grunt) {
       } else if(options.format === 'json') {
         grunt.log.writeln('parsing response to json');
         var logFile = grunt.file.read(options.resultFilePath);
-        var jsonData = this.parseLogFile(logFile);
+        var jsonData = parseLogFile(logFile);
         grunt.file.write(finalDest, JSON.stringify(jsonData, null, '\t'));
       } else {
         grunt.file.copy(options.resultFilePath, finalDest);
@@ -432,7 +432,7 @@ module.exports = function(grunt) {
       } else {
         grunt.log.writeln('parsing response to json');
         var logFile = grunt.file.read(options.resultFilePath);
-        var jsonData = this.parseLogFile(logFile);
+        var jsonData = parseLogFile(logFile);
 
         grunt.log.writeln('transforming response to metadata json');
         var metaDataJson = {};
