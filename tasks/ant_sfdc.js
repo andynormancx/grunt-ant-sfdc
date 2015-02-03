@@ -169,7 +169,6 @@ module.exports = function(grunt) {
     grunt.file.write(path.join(localTmp,'/ant/build.xml'), buildFile);
 
     if (!options.existingPackage) {
-      var packageXml = buildPackageXml(this.data.pkg, options.apiVersion);
       var packageXml = buildPackageXml(this.data.pkg, this.data.pkgName, options.apiVersion);
       grunt.file.write(path.join(options.root,'/package.xml'), packageXml);
     }
