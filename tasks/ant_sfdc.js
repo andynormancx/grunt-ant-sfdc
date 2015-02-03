@@ -173,6 +173,12 @@ module.exports = function(grunt) {
     }
   }
 
+  function replaceMetadata(alternativeMetadataFile) {
+    var json = grunt.file.read(alternativeMetadataFile);
+    var jsonData = JSON.parse(json);
+    metaData = jsonData;
+  }
+
   /*************************************
    * antdeploy task
    *************************************/
