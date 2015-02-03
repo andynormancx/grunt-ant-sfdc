@@ -129,6 +129,50 @@ module.exports = function(grunt) {
     return packageXml.join('\n');
   }
 
+  function parseLogFile(logFile) {
+    var lines = logFile.split('\n');
+
+    var jsonData = {};
+    var currentType = 'types';
+    var md;
+
+    for(var i=0; i<lines.length; i++) {
+      var line = lines[i].split(':');
+      if(line.length === 2) {
+        var prop = line[0].trim();
+        var val = line[1].trim();
+        var valsplit = val.split(',');
+        // start of a new md section
+
+        if(prop === 'ChildObjects') {
+          if(valsplit.length > 1) {
+            var arr = [];
+            for(var a=0; a<valsplit.length; a++) {
+              var part = valsplit[a].trim();
+              if(!/^\*.*/.test(part)) {
+                arr.push(part);
+              }
+            }
+            val = arr;
+          } else if(/^\*.*/.test(val)) {
+            val = [];
+          }
+        } else {
+          if(val === 'false') {val = false;}
+          if(val === 'true') {val = true;}
+        }
+        if(!md) {md = {};}
+        md[prop] = val;
+      } else {
+        if(md && currentType) {
+          if(!jsonData[currentType]) {jsonData[currentType] = [];}
+          jsonData[currentType].push(grunt.util._.clone(md));
+          md = null;
+        }
+      }
+    }
+  }
+
   /*************************************
    * antdeploy task
    *************************************/
@@ -329,47 +373,7 @@ module.exports = function(grunt) {
       } else if(options.format === 'json') {
         grunt.log.writeln('parsing response to json');
         var logFile = grunt.file.read(options.resultFilePath);
-        var lines = logFile.split('\n');
-
-        var jsonData = {};
-        var currentType = 'types';
-        var md;
-
-        for(var i=0; i<lines.length; i++) {
-          var line = lines[i].split(':');
-          if(line.length === 2) {
-            var prop = line[0].trim();
-            var val = line[1].trim();
-            var valsplit = val.split(',');
-            // start of a new md section
-
-            if(prop === 'ChildObjects') {
-              if(valsplit.length > 1) {
-                var arr = [];
-                for(var a=0; a<valsplit.length; a++) {
-                  var part = valsplit[a].trim();
-                  if(!/^\*.*/.test(part)) {
-                    arr.push(part);
-                  }
-                }
-                val = arr;
-              } else if(/^\*.*/.test(val)) {
-                val = [];
-              }
-            } else {
-              if(val === 'false') {val = false;}
-              if(val === 'true') {val = true;}
-            }
-            if(!md) {md = {};}
-            md[prop] = val;
-          } else {
-            if(md && currentType) {
-              if(!jsonData[currentType]) {jsonData[currentType] = [];}
-              jsonData[currentType].push(grunt.util._.clone(md));
-              md = null;
-            }
-          }
-        }
+        var jsonData = this.parseLogFile(logFile);
         grunt.file.write(finalDest, JSON.stringify(jsonData, null, '\t'));
       } else {
         grunt.file.copy(options.resultFilePath, finalDest);
