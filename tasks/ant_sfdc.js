@@ -182,6 +182,16 @@ module.exports = function(grunt) {
     metadata = jsonData;
   }
 
+  function getAllMetadataTypes() {
+    var types = {};
+
+    Object.keys(metadata).forEach(function (key) {
+      types[key] = ['*'];
+    });
+    
+    return types;
+  }
+
   /*************************************
    * antdeploy task
    *************************************/
@@ -307,7 +317,9 @@ module.exports = function(grunt) {
       unzip: true,
       useEnv: false,
       existingPackage: false,
-      alternativeMetadataFile: false
+      alternativeMetadataFile: false,
+      retrieveAllMetadata: false,
+      metadataToIgnore: false
     });
 
     grunt.log.writeln('Retrieve Target -> ' + target);
@@ -322,6 +334,22 @@ module.exports = function(grunt) {
     if (options.alternativeMetadataFile) {      
       replaceMetadata(options.alternativeMetadataFile);
     }
+
+    if (options.retrieveAllMetadata) {
+      grunt.log.writeln('Retrieving metadata for all types');
+      this.data.pkg = getAllMetadataTypes();
+    }
+
+
+    if (options.metadataToIgnore) {
+      options.metadataToIgnore.forEach(function (item) {
+        if (this.data.pkg[item.toLowerCase()]) {
+          grunt.log.writeln('Ignoring metadata type ' + item);
+          delete this.data.pkg[item.toLowerCase()];
+        }
+      }, this);
+    }
+
     var buildFile = grunt.template.process(template, { data: options });
     grunt.file.write(path.join(localTmp,'/ant/build.xml'), buildFile);
 
