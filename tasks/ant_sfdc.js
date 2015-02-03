@@ -385,6 +385,76 @@ module.exports = function(grunt) {
   });
 
   /*************************************
+   * antgetmetadata task
+   *************************************/
+
+  grunt.registerMultiTask('antbuildmetadata', 'Build metadata.json file for an org', function() {
+
+    makeLocalTmp();
+
+    var done = this.async();
+    var target = this.target.green;
+    var template = grunt.file.read(path.join(localAnt,'/antdescribe.build.xml'));
+
+    var options = this.options({
+      user: false,
+      pass: false,
+      token: false,
+      apiVersion: '29.0',
+      serverurl: 'https://login.salesforce.com',
+      resultFilePath: '',
+      trace: false,
+      useEnv: false
+    });
+
+    var finalDest = path.normalize(options.resultFilePath);
+
+    options.resultFilePath = path.join(localTmp,'/list.log');
+
+    grunt.log.writeln('Build metadata Target -> ' + target);
+
+    parseAuth(options, target);
+
+    var buildFile = grunt.template.process(template, { data: options });
+    grunt.file.write(path.join(localTmp,'/ant/build.xml'), buildFile);
+
+    grunt.file.write(options.resultFilePath);
+
+    runAnt('describe', target, function(err, results) {
+      if(err) {
+        done();
+      } else {
+        grunt.log.writeln('parsing response to json');
+        var logFile = grunt.file.read(options.resultFilePath);
+        var jsonData = this.parseLogFile(logFile);
+
+        grunt.log.writeln('transforming response to metadata json');
+        var metaDataJson = {};
+
+        jsonData['types'].forEach(function (item) {
+          var type = item;
+          var metaData  = {
+            "xmlType": type.XMLName,
+            "folder": type.DirName,
+            "suffix": type.Suffix,
+            "allowStar": true, // TODO: can we actually determine this somehow,
+            "inFolder": type.InFolder,
+            "hasMetaFile": type.HasMetaFile,
+            "childObjects": type.ChildObjects
+          };
+
+          metaDataJson[type.XMLName.toLocaleLowerCase()] = metaData;
+        });
+
+        grunt.file.write(finalDest, JSON.stringify(metaDataJson, null, '\t'));
+      }
+      clearLocalTmp();
+      done();
+    });
+
+  });
+
+  /*************************************
    * antlist task
    *************************************/
 
