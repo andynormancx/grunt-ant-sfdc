@@ -175,6 +175,56 @@ module.exports = function(grunt) {
     return jsonData;
   }
 
+  function parseMetadataListLogFile(logFile, metadataType) {
+    var lines = logFile.split('\n');
+
+    var jsonData = {};
+    var currentType;
+    var md;
+
+    for(var i=0; i<lines.length; i++) {
+      var line = lines[i].split(':');
+      if(line.length === 2) {
+        var prop = line[0].trim();
+        var val = line[1].trim();
+        var valsplit = val.split('/');
+        // start of a new md section
+        if(prop === 'FileName') {
+          if(!jsonData[metadataType]) {jsonData[metadataType] = [];}
+          currentType = metadataType;
+
+          if(!md) {md = {};}
+          md.FileName = val;
+
+        } else if(prop === 'FullName/Id') {
+          valsplit = val.split('/');
+          md.FullName = valsplit[0];
+          md.Id = valsplit[1];
+        } else if(prop === 'Manageable State') {
+          md.ManageableState = val;
+        } else if(prop === 'Namespace Prefix') {
+          md.NamespacePrefix = val;
+        } else if(prop === 'Created By (Name/Id)') {
+          if(!md.CreatedBy) {md.CreatedBy = {};}
+          md.CreatedBy.Name = valsplit[0];
+          md.CreatedBy.Id = valsplit[1];
+        } else if(prop === 'Last Modified By (Name/Id)') {
+          if(!md.LastModifiedBy) {md.LastModifiedBy = {};}
+          md.LastModifiedBy.Name = valsplit[0];
+          md.LastModifiedBy.Id = valsplit[1];
+        }
+      } else {
+        if(md && currentType) {
+          if(!jsonData[currentType]) {jsonData[currentType] = [];}
+          jsonData[currentType].push(grunt.util._.clone(md));
+          md = null;
+        }
+      }
+    }
+
+    return jsonData;
+  }
+
   function replaceMetadata(alternativeMetadataFile) {
     grunt.log.writeln('Using alternative metadata file -> ' + alternativeMetadataFile);
     var json = grunt.file.read(alternativeMetadataFile);
@@ -597,51 +647,7 @@ module.exports = function(grunt) {
       } else if(options.format === 'json') {
         grunt.log.writeln('parsing response to json');
         var logFile = grunt.file.read(options.resultFilePath);
-        var lines = logFile.split('\n');
-
-        var jsonData = {};
-        var currentType;
-        var md;
-
-        for(var i=0; i<lines.length; i++) {
-          var line = lines[i].split(':');
-          if(line.length === 2) {
-            var prop = line[0].trim();
-            var val = line[1].trim();
-            var valsplit = val.split('/');
-            // start of a new md section
-            if(prop === 'FileName') {
-              if(!jsonData[options.metadataType]) {jsonData[options.metadataType] = [];}
-              currentType = options.metadataType;
-
-              if(!md) {md = {};}
-              md.FileName = val;
-
-            } else if(prop === 'FullName/Id') {
-              valsplit = val.split('/');
-              md.FullName = valsplit[0];
-              md.Id = valsplit[1];
-            } else if(prop === 'Manageable State') {
-              md.ManageableState = val;
-            } else if(prop === 'Namespace Prefix') {
-              md.NamespacePrefix = val;
-            } else if(prop === 'Created By (Name/Id)') {
-              if(!md.CreatedBy) {md.CreatedBy = {};}
-              md.CreatedBy.Name = valsplit[0];
-              md.CreatedBy.Id = valsplit[1];
-            } else if(prop === 'Last Modified By (Name/Id)') {
-              if(!md.LastModifiedBy) {md.LastModifiedBy = {};}
-              md.LastModifiedBy.Name = valsplit[0];
-              md.LastModifiedBy.Id = valsplit[1];
-            }
-          } else {
-            if(md && currentType) {
-              if(!jsonData[currentType]) {jsonData[currentType] = [];}
-              jsonData[currentType].push(grunt.util._.clone(md));
-              md = null;
-            }
-          }
-        }
+        var jsonData = parseMetadataListLogFile(logFile, options.metadataType);
         grunt.file.write(finalDest, JSON.stringify(jsonData, null, '\t'));
       } else {
         grunt.file.copy(options.resultFilePath, finalDest);
