@@ -175,7 +175,7 @@ module.exports = function(grunt) {
     return jsonData;
   }
 
-  function parseMetadataListLogFile(logFile, metadataType) {
+  function parseMetadataListLogFile(logFile, metadataType, onlyOnStandardObjects) {
     var lines = logFile.split('\n');
 
     var jsonData = {};
@@ -196,10 +196,23 @@ module.exports = function(grunt) {
           if(!md) {md = {};}
           md.FileName = val;
 
+          var fileSplit = val.split('.');
+          if (fileSplit.length > 1) {
+            md.FileSuffix = fileSplit[1];
+          }
         } else if(prop === 'FullName/Id') {
           valsplit = val.split('/');
           md.FullName = valsplit[0];
           md.Id = valsplit[1];
+
+          var nameSplit = val.split('.');
+          if (nameSplit.length > 1) {
+            if (nameSplit[0].substr(nameSplit[0].length - 3) === ('__c')) {
+              md.OnStandardObject = false;
+            } else {
+              md.OnStandardObject = true;
+            }
+          }
         } else if(prop === 'Manageable State') {
           md.ManageableState = val;
         } else if(prop === 'Namespace Prefix') {
@@ -216,7 +229,13 @@ module.exports = function(grunt) {
       } else {
         if(md && currentType) {
           if(!jsonData[currentType]) {jsonData[currentType] = [];}
-          jsonData[currentType].push(grunt.util._.clone(md));
+          var shouldOutput = true;
+          if (onlyOnStandardObjects && !md.OnStandardObject) {
+            shouldOutput = false;
+          }
+          if (shouldOutput) {
+            jsonData[currentType].push(grunt.util._.clone(md));
+          }
           md = null;
         }
       }
