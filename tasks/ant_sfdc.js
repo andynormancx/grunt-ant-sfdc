@@ -372,6 +372,63 @@ module.exports = function(grunt) {
   });
 
   /*************************************
+   * antbulkretrieve task
+   *************************************/
+
+  grunt.registerMultiTask('antbulkretrieve', 'Run ANT bulkRetrieve to get metadata from Salesforce', function() {
+
+    makeLocalTmp();
+
+    var done = this.async();
+    var target = this.target.green;
+    var template = grunt.file.read(path.join(localAnt,'/antbulkretrieve.build.xml'));
+
+    var options = this.options({
+      user: false,
+      pass: false,
+      token: false,
+      root: './build',
+      apiVersion: '29.0',
+      serverurl: 'https://login.salesforce.com',
+      retrieveTarget: false,
+      unzip: true,
+      useEnv: false,
+      existingPackage: false,
+      metadataType: false
+    });
+
+    grunt.log.writeln('Retrieve Target -> ' + target);
+
+    parseAuth(options, target);
+
+    options.root = path.normalize(options.root);
+
+    options.unpackaged = path.join(options.root,'/package.xml');
+    if(!options.retrieveTarget) {options.retrieveTarget = options.root;}
+
+    var buildFile = grunt.template.process(template, { data: options });
+    grunt.file.write(path.join(localTmp,'/ant/build.xml'), buildFile);
+
+    if (!options.existingPackage) {
+      // we pass null metatype types here, the metadata type we want is in the build.xml file for bulkRetrieve
+      var packageXml = buildPackageXml(null, null, options.apiVersion);
+      grunt.file.write(path.join(options.root,'/package.xml'), packageXml);
+    } else {
+      if(grunt.file.exists(options.root,'/package.xml')){
+        grunt.file.copy(path.join(options.root,'/package.xml'), path.join(localTmp,'/package.xml'));
+      } else {
+        grunt.log.error('No Package.xml file found in ' + options.root);
+      }
+    }
+
+    runAnt('bulkRetrieve', target, function(err, result) {
+      clearLocalTmp();
+      done();
+    });
+
+  });
+
+  /*************************************
    * antdescribe task
    *************************************/
 

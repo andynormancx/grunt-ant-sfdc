@@ -1,0 +1,16 @@
+<project name="Grunt Salesforce Ant Retrieve" default="bulkRetrieve" xmlns:sf="antlib:com.salesforce">
+
+  <target name="bulkRetrieve">
+    <sf:bulkRetrieve 
+      username="<%= user %>" 
+      password="<%= pass %>" 
+      serverurl="<%= serverurl %>" 
+      maxPoll="<%= maxPoll %>" 
+      pollWaitMillis="<%= pollWaitMillis %>" 
+      apiVersion="<%= apiVersion %>"
+      retrieveTarget="<%= retrieveTarget %>"
+      unzip="<%= unzip %>"
+      metadataType="<%= metadataType %>" >
+    </sf:bulkRetrieve >
+  </target>
+</project>
