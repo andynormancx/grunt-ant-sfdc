@@ -441,6 +441,91 @@ module.exports = function(grunt) {
   });
 
   /*************************************
+   * antretrievecustomfieldsonstandardobjects task
+   *************************************/
+
+  grunt.registerMultiTask('antretrievecustomfieldsonstandardobjects', 'Run ANT retrieve to get custom fields on standard objects from Salesforce', function() {
+
+    makeLocalTmp();
+
+    var done = this.async();
+    var target = this.target.green;
+    var template = grunt.file.read(path.join(localAnt,'/antretrieve.build.xml'));
+    var listTemplate = grunt.file.read(path.join(localAnt,'/antlist.build.xml'));
+
+    var options = this.options({
+      user: false,
+      pass: false,
+      token: false,
+      root: './build',
+      apiVersion: '31.0',
+      serverurl: 'https://login.salesforce.com',
+      retrieveTarget: false,
+      unzip: true,
+      useEnv: false,
+      existingPackage: false,
+      alternativeMetadataFile: false
+    });
+
+    grunt.log.writeln('Retrieve Target -> ' + target);
+
+    parseAuth(options, target);
+
+    options.root = path.normalize(options.root);
+
+    options.unpackaged = path.join(options.root,'/package.xml');
+    if(!options.retrieveTarget) {options.retrieveTarget = options.root;}
+
+    if (options.alternativeMetadataFile) {      
+      replaceMetadata(options.alternativeMetadataFile);
+    }
+
+    // first we need to get a list of custom fields on standard objects
+    var listOptions = grunt.util._.clone(options);
+    listOptions.metadataType = 'CustomField';
+    listOptions.resultFilePath = path.join(localTmp,'/ant/antretrievecustomfieldsonstandardobjects.log');
+    var listBuildFile = grunt.template.process(listTemplate, { data: listOptions });
+    grunt.file.write(path.join(localTmp,'/ant/build.xml'), listBuildFile);
+
+    runAnt('listmetadata', target, function(err, results) {
+      if(err) {
+        done();
+      } else {
+        grunt.log.writeln('parsing response to json');
+        var logFile = grunt.file.read(listOptions.resultFilePath);
+        var jsonData = parseMetadataListLogFile(logFile, listOptions.metadataType, true);
+        console.log(jsonData);
+      }
+
+      var pkg = { CustomField: [ ] };
+      var customFields = pkg['CustomField'];
+
+      jsonData['CustomField'].forEach(function (item) {
+        customFields.push(item.FullName);
+      });
+
+      var buildFile = grunt.template.process(template, { data: options });
+      grunt.file.write(path.join(localTmp,'/ant/build.xml'), buildFile);
+
+      if (!options.existingPackage) {
+        var packageXml = buildPackageXml(pkg, null, options.apiVersion);
+        grunt.file.write(path.join(options.root,'/package.xml'), packageXml);
+      } else {
+        if(grunt.file.exists(options.root,'/package.xml')){
+          grunt.file.copy(path.join(options.root,'/package.xml'), path.join(localTmp,'/package.xml'));
+        } else {
+          grunt.log.error('No Package.xml file found in ' + options.root);
+        }
+      }
+
+      runAnt('retrieve', target, function(err, result) {
+        clearLocalTmp();
+        done();
+      });
+    });
+  });
+
+  /*************************************
    * antbulkretrieve task
    *************************************/
 
