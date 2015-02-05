@@ -494,7 +494,6 @@ module.exports = function(grunt) {
         grunt.log.writeln('parsing response to json');
         var logFile = grunt.file.read(listOptions.resultFilePath);
         var jsonData = parseMetadataListLogFile(logFile, listOptions.metadataType, true);
-        console.log(jsonData);
       }
 
       var pkg = { CustomField: [ ] };
