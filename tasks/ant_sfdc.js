@@ -698,6 +698,16 @@ module.exports = function(grunt) {
           metaDataJson[type.XMLName.toLocaleLowerCase()] = metaData;
         });
 
+        metaDataJson['customfield'] = {
+            "xmlType": 'CustomField',
+            "folder": "objects",
+            "suffix": "object",
+            "allowStar": false,
+            "inFolder": false,
+            "hasMetaFile": false,
+            "childObjects": []
+        };
+
         grunt.file.write(finalDest, JSON.stringify(metaDataJson, null, '\t'));
       }
       clearLocalTmp();
