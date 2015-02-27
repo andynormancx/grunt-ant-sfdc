@@ -103,6 +103,81 @@ module.exports = function(grunt) {
     });
   }
 
+  function buildPackageXmlFromFiles(root, version) {
+    grunt.log.debug("buildPackageXmlFromFiles for " + root)
+    if (!grunt.file.isDir(root)) {
+        grunt.fail.fatal("Expected a directory: " + root);
+    }
+
+      var pkg = {};
+
+    grunt.file.recurse(root, function (abspath, rootdir, subdir, fileName) {
+        var folder = unixifyPath(subdir);
+
+        if (folder === undefined) {
+            // ignore files in the root folder
+            return;
+        }
+
+        if (folder.indexOf("/") !== -1) {
+            // only descend one folder deep
+            return;
+        }
+
+        if (fileName === ".DS_Store") {
+            // silently ignore OSX metadata file
+            return;
+        }
+
+        var metadataType = folderToMetadataType(subdir);
+
+        if (metadataType === null) {
+            grunt.fail.warn("Couldn't match metadata for folder '" + subdir + "'");
+        } else {
+            // ignore files that don't have an extension that matches the
+            if (fileName.match(new RegExp("\." + metadataType.metadata.suffix + "$")) !== null) {
+                var entityType;
+                if (pkg[metadataType.key] === undefined) {
+                    pkg[metadataType.key] = [];
+                }
+                entityType = pkg[metadataType.key];
+
+                entityType.push(stripExtension(fileName));
+            } else {
+                // don't warn about meta.xml files
+                if (fileName.match(/meta\.xml$/) === null) {
+                    grunt.fail.warn("Ignoring '" + fileName + "', extension doesn't match folder");
+                }
+            }
+        }
+    });
+
+      console.log(pkg);
+    var xml = buildPackageXml(pkg, null, version);
+    return xml;
+  }
+
+    function folderToMetadataType(folder) {
+        var matched  = null;
+        Object.keys(metadata).forEach(function (key) {
+            var metadataType  = metadata[key];
+            if (metadataType.folder === folder) {
+                matched = { key: key, metadata: metadata[key] };
+            }
+        });
+        return matched;
+    }
+    function unixifyPath(filepath) {
+        if (process.platform === 'win32') {
+            return filepath.replace(/\\/g, '/');
+        } else {
+            return filepath;
+        }
+    };
+
+    function stripExtension(fileName) {
+        return fileName.replace(/\..+$/, '');
+    };
   function buildPackageXml(pkg, pkgName, version) {
     var packageXml = [
       '<?xml version="1.0" encoding="UTF-8"?>',
@@ -714,6 +789,32 @@ module.exports = function(grunt) {
     });
 
   });
+
+    grunt.registerMultiTask('antbuildpackagexml', 'Build package.xml from the file system', function() {
+
+        makeLocalTmp();
+
+        var target = this.target.green;
+
+        var options = this.options({
+            apiVersion: '31.0',
+            folder: null
+        });
+
+        if (options.folder === null) {
+            grunt.fail.fatal("No folder set in options");
+        }
+
+        if (metadata["customfield"]) {
+            delete metadata["customfield"];
+        }
+        var packageXml = buildPackageXmlFromFiles(options.folder, options.apiVersion);
+
+
+        grunt.file.write(path.join(options.folder,'/package.xml'), packageXml);
+
+    });
+
 
   /*************************************
    * antlist task
