@@ -805,6 +805,10 @@ module.exports = function(grunt) {
             grunt.fail.fatal("No folder set in options");
         }
 
+        if (options.alternativeMetadataFile) {
+            replaceMetadata(options.alternativeMetadataFile);
+        }
+
         if (metadata["customfield"]) {
             delete metadata["customfield"];
         }
