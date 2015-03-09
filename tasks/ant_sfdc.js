@@ -112,6 +112,11 @@ module.exports = function(grunt) {
       var pkg = {};
 
     grunt.file.recurse(root, function (abspath, rootdir, subdir, fileName) {
+﻿       if (subdir === undefined) {
+            // ignore files in the root folder
+            return;
+        }
+
         var folder = unixifyPath(subdir);
 
         if (folder === undefined) {
