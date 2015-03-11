@@ -124,49 +124,53 @@ module.exports = function(grunt) {
             return;
         }
 
-        if (folder.indexOf("/") !== -1) {
-            // only descend one folder deep
-            return;
-        }
-
         if (fileName === ".DS_Store") {
             // silently ignore OSX metadata file
             return;
         }
 
-        var metadataType = folderToMetadataType(subdir);
+        var extension = getExtension(fileName);
+
+        if (fileName.match(/meta\.xml$/) !== null) {
+                return;
+        }
+
+        var subPath = "";
+
+        if (folder.indexOf("/") !== -1) {
+            subPath = getBottomFolder(subdir);
+        }
+
+
+        var metadataType = extensionToMetadataType(extension);
 
         if (metadataType === null) {
-            grunt.fail.warn("Couldn't match metadata for folder '" + subdir + "'");
+            grunt.fail.warn("Couldn't match metadata for extension '" + extension + "'");
         } else {
-            // ignore files that don't have an extension that matches the
-            if (fileName.match(new RegExp("\." + metadataType.metadata.suffix + "$")) !== null) {
-                var entityType;
-                if (pkg[metadataType.key] === undefined) {
-                    pkg[metadataType.key] = [];
-                }
-                entityType = pkg[metadataType.key];
+            var entityType;
+            if (pkg[metadataType.key] === undefined) {
+                pkg[metadataType.key] = [];
+            }
+            entityType = pkg[metadataType.key];
 
-                entityType.push(stripExtension(fileName));
+            if (subPath !== "") {
+                entityType.push(subPath + "/" + stripExtension(fileName));
             } else {
-                // don't warn about meta.xml files
-                if (fileName.match(/meta\.xml$/) === null) {
-                    grunt.fail.warn("Ignoring '" + fileName + "', extension doesn't match folder");
-                }
+                entityType.push(stripExtension(fileName));
             }
         }
     });
 
-      console.log(pkg);
+      //console.log(pkg);
     var xml = buildPackageXml(pkg, null, version);
     return xml;
   }
 
-    function folderToMetadataType(folder) {
+    function extensionToMetadataType(extension) {
         var matched  = null;
         Object.keys(metadata).forEach(function (key) {
             var metadataType  = metadata[key];
-            if (metadataType.folder === folder) {
+            if (metadataType.suffix === extension) {
                 matched = { key: key, metadata: metadata[key] };
             }
         });
@@ -181,8 +185,20 @@ module.exports = function(grunt) {
     };
 
     function stripExtension(fileName) {
-        return fileName.replace(/\..+$/, '');
+        return fileName.replace(/\.[^\.]+$/, '');
     };
+
+    function getExtension(fileName) {
+        var matches = fileName.match(/\.([^\.]+)$/);
+        return (matches === null || matches.length < 2) ? "" : matches[1];
+    };
+
+    function getBottomFolder(path) {
+        var matches = path.match(/\/(.+)$/);
+        return (matches === null || matches.length < 2) ? "" : matches[1];
+    };
+
+
   function buildPackageXml(pkg, pkgName, version) {
     var packageXml = [
       '<?xml version="1.0" encoding="UTF-8"?>',
